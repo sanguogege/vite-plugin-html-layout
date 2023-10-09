@@ -14,6 +14,7 @@
         "type": "git",
         "url": "https://github.com/sanguogege/vite-plugin-html-layout"
     },
+    "license": "MIT",
     "description": "a plugin only for vite, about layout html",
     "files": [
         "dist"
