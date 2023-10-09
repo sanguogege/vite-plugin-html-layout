@@ -10,6 +10,10 @@
         "vite-plugin-html-layout",
         "for vite"
     ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/sanguogege/vite-plugin-html-layout"
+    },
     "description": "a plugin only for vite, about layout html",
     "files": [
         "dist"
