@@ -1,6 +1,6 @@
 import { readFile, readdir } from "fs/promises";
 import { resolve } from "path";
-import { parse, parseFragment, serializeOuter, serialize } from "parse5";
+import { parse, parseFragment, serialize } from "parse5";
 import Handlebars from "handlebars";
 import { Options } from "./type";
 
@@ -13,12 +13,17 @@ function findAndRemoveElement(childNode: any, parentNode: any) {
 }
 
 function findScriptTargetElement(attrs: any) {
-	for (const attr of attrs) {
-		if (attr.name == "head" || attr.name == "body") {
-			return attr.name;
+	let attrLocaltion: any = {
+		location: -1,
+		index: false,
+	};
+	for (const i in attrs) {
+		if (attrs[i].name == "head" || attrs[i].name == "body") {
+			attrLocaltion.location = i;
+			attrLocaltion.index = attrs[i].name;
 		}
-		return false;
 	}
+	return attrLocaltion;
 }
 
 function findDataToObject(data: any) {
@@ -31,53 +36,61 @@ function findDataToObject(data: any) {
 	return JSON.parse(strData);
 }
 
+function sortElement(nodes: any) {
+	const orderArray = ["link", "style", "script"];
+	return nodes.sort((pre: any, next: any) => {
+		const pretag = pre.Node.nodeName;
+		const nexttag = next.Node.nodeName;
+
+		const indexpre = orderArray.indexOf(pretag);
+		const indexnext = orderArray.indexOf(nexttag);
+
+		return indexpre - indexnext;
+	});
+}
+
+function addElementToLayout(nodes: any, layout: any) {
+	const html = layout.childNodes[1].childNodes;
+	const newNodes = sortElement(nodes);
+	for (const node of newNodes) {
+		const targetNode = html.find((t: any) => t.nodeName === node.index);
+		targetNode.childNodes.push(node.Node);
+	}
+	return layout;
+}
+
 function partialElementBox(html: string) {
 	let lData;
 	var parentNode = parseFragment(html);
 	var body = "";
-	var labelAdd: any = {
-		link: [],
-		script: [],
-		style: [],
-	};
+	var labelAdd = [];
 	for (const Node of parentNode.childNodes) {
 		if (Node.nodeName == "lcode") {
 			parentNode = findAndRemoveElement(Node, Node.parentNode);
 			lData = findDataToObject(Node.childNodes);
 		}
-		if (Node.nodeName == "link") {
+		if (Node.nodeName == "link" || Node.nodeName == "style") {
 			parentNode = findAndRemoveElement(Node, Node.parentNode);
-			labelAdd.link.push({
+			labelAdd.push({
 				index: "head",
 				Node: Node,
 			});
 		}
 		if (Node.nodeName == "script") {
-			const localtion = findScriptTargetElement(Node.attrs);
-			console.log(localtion);
-			if (localtion) {
+			const attrLocaltion = findScriptTargetElement(Node.attrs);
+			if (attrLocaltion.index) {
 				parentNode = findAndRemoveElement(Node, Node.parentNode);
-				let topScript = serializeOuter(Node)
-					.replace(` ${localtion}=''`, "")
-					.replace(` ${localtion}=""`, "");
-				labelAdd.script.push({
-					index: localtion,
-					Node: parseFragment(topScript).childNodes[0],
+				Node.attrs.splice(attrLocaltion.location, 1);
+				labelAdd.push({
+					index: attrLocaltion.index,
+					Node: Node,
 				});
 			}
 		}
-		if (Node.nodeName == "style") {
-			parentNode = findAndRemoveElement(Node, Node.parentNode);
-			labelAdd.link.push({
-				index: "head",
-				Node: Node,
-			});
-		}
 	}
-
 	body = serialize(parentNode);
 
-	var lCode = {
+	let lCode = {
 		...lData,
 		body,
 	};
@@ -87,21 +100,10 @@ function partialElementBox(html: string) {
 	};
 }
 
-function addElementToLayout(nodes: any, layout: any) {
-	const html = layout.childNodes[1].childNodes;
-	for (const node of nodes) {
-		const targetNode = html.find((t: any) => t.nodeName === node.index);
-		targetNode.childNodes.push(node.Node);
-	}
-	return layout;
-}
-
 async function replaceHtml(path: string, partialHtml: any) {
 	const layoutPage = await readFile(path, { encoding: "utf-8" });
 	var layoutNodes = parse(layoutPage);
-	layoutNodes = addElementToLayout(partialHtml.labelAdd.link, layoutNodes);
-	layoutNodes = addElementToLayout(partialHtml.labelAdd.script, layoutNodes);
-	layoutNodes = addElementToLayout(partialHtml.labelAdd.style, layoutNodes);
+	layoutNodes = addElementToLayout(partialHtml.labelAdd, layoutNodes);
 	var layoutNodeToString = serialize(layoutNodes);
 	const template = Handlebars.compile(layoutNodeToString);
 	return template(partialHtml.lCode);
