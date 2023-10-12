@@ -18,7 +18,7 @@ vite.config.js
 import { defineConfig } from "vite";
 import { resolve } from "path";
 
-import CreatHtmlLayout from "./plugin";
+import CreatHtmlLayout from "vite-plugin-html-layout";
 
 export default defineConfig({
 	root: "src",
