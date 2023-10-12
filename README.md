@@ -9,41 +9,47 @@
 ## 使用
 - 指定一个html页面为模板页。
 - 指定一个文件夹为存放具体页面地方。
+- 页面解析基于 parse5.js
 - 页面插入基于 handlebars.js
 
 vite.config.js
 
 ```ts
 import { defineConfig } from "vite";
-import { resolve } from 'path';
-import { CreatHtmlLayout, CheckPath } from "vite-plugin-html-layout";
+import { resolve } from "path";
+
+import CreatHtmlLayout from "./plugin";
 
 export default defineConfig({
-    root: 'src',
-    plugins: [CreatHtmlLayout({
-        layoutUrl: resolve(__dirname, 'layout.html'),
-    })],
-    build: {
-        outDir: '../dist',
-        rollupOptions: {
-            input: await CheckPath(resolve(__dirname, 'src'))
-        },
-    },
-    publicDir: resolve(__dirname, 'public/'),
-})
+	root: "src",
+	plugins: [
+		CreatHtmlLayout({
+			template: resolve(__dirname, "index.html"),
+			components: resolve(__dirname, "components/"),
+		}),
+	],
+	publicDir: resolve(__dirname, "public"),
+	build: {
+		outDir: resolve(__dirname, "dist"),
+		emptyOutDir: true,
+	},
+});
 
 ```
-- 'layoutUrl' 插件必须项，为指定模板页面。
+- CreatHtmlLayout
+---- 'template'  <strong>必须项目：</strong>指定具体页面为模板页面。
+---- 'components'  <strong>可选项目：</strong>指定components的存放路径。
 
-- input 打包必须项，为具体页面打包设置，插件提供的CheckPath函数，会读取'root'文件夹下的所有html文件，并打包。
+- 'root' <strong>必须项目：</strong>为具体页面存放路径，此为vite的根目录设置。
 
-- 'root'为具体页面路径，此为vite的根目录设置。
+- 'publicDir' 公共文件夹，尽量不要放在root里，影响打包效果。
+--- 你可以直接在项目文件夹里访问里面的js、css、image等等，例如：
+ `<link rel="stylesheet" href="/css/public.css">` 
+ 表示 文件夹publicDir => css文件夹 =>public.css。
 
 - 'outDir' 为打包后的存放目录，由于'root'指定了文件夹，所以'outDir'是相对'root'的相对路径。
 
-- 'publicDir' 公共文件夹，你可以直接在项目文件夹里访问里面的js、css、image等等，例如：
- `<link rel="stylesheet" href="/css/public.css">` 
- 表示 文件夹publicDir => css文件夹 =>public.css。
+
 
 
 layout.html
@@ -104,6 +110,17 @@ layout.html
 - style标签：会按顺序添加的head的尾部并保持在link之后，可以随意置放，但限于无外部标签。
 
 
+components/test.html
+
+```html
+
+<b>这是组件中的test.html</b>
+<script body src="/js/jqueryjs"></script>
+
+```
+- 除了不支持lcode标签，其他的和template页面用法一样。
+- components尽量在template页面里使用。
+- 在layout页面里，只会解析成html，对script、link、style不做出任何处理。
 
 
 

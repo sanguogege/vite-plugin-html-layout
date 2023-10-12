@@ -1,3 +1,8 @@
+/**
+ * @param template 指定模板文件
+ * @param components 指定组件路径
+ * */
 export interface Options {
-	layoutUrl: string;
+	template: string;
+	components?: string;
 }
